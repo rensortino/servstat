@@ -5,13 +5,15 @@
     "dev": "vite",
     "build": "vite build"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@vitejs/plugin-vue": "^6.0.0"
+  },
   "devDependencies": {
     "@vue/compiler-sfc": "^3.0.4",
     "fomantic-ui-css": "^2.8.8",
     "less": "^4.1.1",
     "pug": "^3.0.2",
-    "vite": "^1.0.0-rc.13",
+    "vite": "^6.0.0",
     "vue": "^3.0.4"
   }
 }
