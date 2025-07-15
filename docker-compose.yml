@@ -9,7 +9,7 @@ services:
     # Replace with your actual backend image
     image: servstat-backend:latest
     hostname: backend
-    # build: ./backend # Or use a build context
+    build: ./backend # Or use a build context
     networks:
       app_net:
         ipv4_address: 172.20.0.10
@@ -19,7 +19,7 @@ services:
     # Replace with your actual frontend image
     image: servstat-frontend:latest
     hostname: frontend
-    # build: ./frontend # Or use a build context
+    build: ./frontend # Or use a build context
     networks:
       - app_net
     profiles:
