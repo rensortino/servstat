@@ -34,22 +34,22 @@ First, build the Docker images
 make build
 ```
 
-Then, start the backend service using Docker Compose with the `--backend-only` flag to start only the backend without the frontend:
+Then, start the backend service using Docker Compose with the `full` flag to start only the backend without the frontend:
 
 ```shell
-make up --backend-only
+make up full
 ```
 
 To stop the backend service, use:
 
 ```shell
-make down --backend-only
+make down full
 ```
 
 To restart the backend service, use:
 
 ```shell
-make restart --backend-only
+make restart full
 ```
 
 ## Frontend Building Process
