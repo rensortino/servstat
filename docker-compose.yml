@@ -1,19 +1,22 @@
-# To run only the backend and nginx:
-# docker compose up -d
-#
-# To run the backend, nginx, and the frontend:
-# docker compose --profile frontend up -d
-
 services:
   backend:
     # Replace with your actual backend image
     image: servstat-backend:latest
     hostname: backend
     build: ./backend # Or use a build context
+    volumes:
+    - /:/host_root:ro  # Mount host's root at /host_root in container, read-only (ro)
     networks:
       app_net:
         ipv4_address: 172.20.0.10
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   frontend:
     # Replace with your actual frontend image
