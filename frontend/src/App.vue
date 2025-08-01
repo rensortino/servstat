@@ -34,6 +34,10 @@
               .little-break
               b Swap Usage ({{ $filters.formatSize(server.data.swap.used) }} / {{ $filters.formatSize(server.data.swap.total) }}) 
               UsageBar.usage-bar(:percent='100 * server.data.swap.used / server.data.swap.total')
+              .little-break
+              b Disk Usage ({{ $filters.formatSize(server.data.disk[0].usage.used) }} / {{ $filters.formatSize(server.data.disk[0].usage.total) }}) 
+              UsageBar.usage-bar(:percent='100 * server.data.disk[0].usage.used / server.data.disk[0].usage.total')
+              .little-break
               table.ui.compact.table
                 tbody
                   tr(v-for='disk in server.data.disk' :class="{ negative: disk.usage.total - disk.usage.used < 20 * 1073741824 }")
