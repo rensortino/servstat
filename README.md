@@ -4,35 +4,58 @@ ServStat is a robust tool designed to monitor multiple servers for CPU, memory, 
 
 ![Demonstration Image](https://user-images.githubusercontent.com/17045050/81972895-dfd6bc00-9655-11ea-9e1c-bda752e6b6bc.png)
 
+The backend collects the stats of the machine where it is deployed and one instance should be deployed on each machine to monitor.
+
+The frontend provides a user-friendly interface to visualize the collected data and should be deployed on only one machine. It periodically queries the hosts specified in `frontend/public/config.json` and displays the collected data in a web interface.
+
+## Docker Deployment (Recommended)
+
+First, build the Docker images through the Makefile.
+
+```shell
+make build
+```
+
+This builds the following services:
+- the backend, which is a simple Bottle application that queries the local machine for CPU, memory, and GPU usage,
+- the frontend, a Vue.js application that queries a list of backends specified in the config.json file for the collected data and displays it in a user-friendly interface,
+- an Nginx reverse proxy server that is used as a unique entry point for the frontend and backend services.
+
+Then, start the services using Docker Compose:
+
+```shell
+make up
+```
+
+To stop the services, use:
+
+```shell
+make down
+```
+
+To restart the services, use:
+
+```shell
+make restart
+```
+
+> :warning: If you modify the frontend code, you will need to rebuild the static files using `make rebuild-frontend` before rebuilding the docker image.
+
 ## Backend Deployment
 
-Ensure that you are logged in as the root user. 
+Create a virtual environment and install the requirements:
 
 ```shell
-cd /root
-git clone https://github.com/djosix/servstat.git .servstat
-cd .servstat/backend
-
-python3 -m pip install -r requirements.txt
+cd backend
+uv venv
+source venv/bin/activate
+uv pip install -r requirements.txt
 ```
 
-To launch the API server:
+Launch the API server:
 
 ```shell
-python3 main.py --host=0.0.0.0 --port=9989
-```
-
-Optionally, you can manage the service with supervisor to ensure it always restarts after system reboots:
-
-```shell
-# Install supervisor
-apt install supervisor
-
-cp servstat.conf /etc/supervisor/conf.d/servstat.conf
-vim /etc/supervisor/conf.d/servstat.conf # Customization allowed
-
-systemctl reload supervisor
-supervisorctl start servstat
+python main.py --host=0.0.0.0 --port=9989
 ```
 
 ## Frontend Building Process
@@ -40,8 +63,7 @@ supervisorctl start servstat
 This process has been tested with Node.js v14.16.0 and Ubuntu 20.04.
 
 ```shell
-git clone https://github.com/djosix/servstat.git
-cd servstat/frontend
+cd frontend
 
 npm install
 
@@ -61,5 +83,3 @@ After building, serve the `dist/` folder using a web server:
 # Copy files to the document root
 cp -r dist/* /var/www/html/
 ```
-
-These instructions will assist you in getting a copy of the project up and running on your local machines for development and testing purposes.
