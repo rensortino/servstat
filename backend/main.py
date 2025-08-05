@@ -53,7 +53,7 @@ def disk_info():
     if disk_info_data is None:
         disks = []
         for part in psutil.disk_partitions():
-            if part.device.startswith('/dev/loop'):
+            if part.mountpoint != "/host_root":
                 continue
             usage = psutil.disk_usage(part.mountpoint)
             part = dict(part._asdict())
