@@ -41,7 +41,9 @@ make restart
 
 > :warning: If you modify the frontend code, you will need to rebuild the static files using `make rebuild-frontend` before rebuilding the docker image.
 
-## Backend Deployment
+## Manual Deployment
+
+### Backend
 
 Create a virtual environment and install the requirements:
 
@@ -58,7 +60,7 @@ Launch the API server:
 python main.py --host=0.0.0.0 --port=9989
 ```
 
-## Frontend Building Process
+### Frontend
 
 This process has been tested with Node.js v14.16.0 and Ubuntu 20.04.
 
