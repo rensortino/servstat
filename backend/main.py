@@ -60,7 +60,9 @@ def disk_info():
         # In Docker, the host filesystem is bind-mounted at /host_root.
         # Use it directly so disk usage reflects the real machine.
         if os.path.ismount(HOST_ROOT):
+            root_dev = None
             try:
+                root_dev = os.stat(HOST_ROOT).st_dev
                 usage = psutil.disk_usage(HOST_ROOT)
                 disks.append({
                     'device': 'host:/',
@@ -71,6 +73,24 @@ def disk_info():
                 })
             except OSError:
                 pass
+            # Additional bind-mounted host paths. Skip when the source did
+            # not exist on the host and resolved to the root filesystem.
+            for container_path, host_label in (('/host_data', '/data'),):
+                if not os.path.ismount(container_path):
+                    continue
+                try:
+                    if root_dev is not None and os.stat(container_path).st_dev == root_dev:
+                        continue
+                    usage = psutil.disk_usage(container_path)
+                    disks.append({
+                        'device': f'host:{host_label}',
+                        'mountpoint': host_label,
+                        'fstype': 'host',
+                        'opts': 'ro',
+                        'usage': dict(usage._asdict()),
+                    })
+                except OSError:
+                    pass
         else:
             # Bare-metal: scan real partitions, skipping loop devices and /boot.
             for part in psutil.disk_partitions():

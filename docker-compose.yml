@@ -6,6 +6,9 @@ services:
     volumes:
       # Mount host root read-only so disk usage reflects the actual machine.
       - /:/host_root:ro
+      # Mount /data if present on the host. On hosts without /data, docker
+      # creates an empty dir here — the backend detects same-fs-as-root and skips it.
+      - /data:/host_data:ro
     environment:
       # Surface the real host name in /stat (otherwise os.uname() returns "backend").
       HOST_HOSTNAME: ${HOSTNAME:-localhost}
