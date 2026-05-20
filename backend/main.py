@@ -6,10 +6,10 @@ import gpustat
 import psutil
 import time
 import os
-import platform
 
 
 CACHE_TIME = 5
+HOST_ROOT = '/host_root'
 
 cpu_info_data = None
 gpu_info_data = None
@@ -22,12 +22,17 @@ def cpu_info():
     global cpu_info_data
     if cpu_info_data is None:
         cpu_info_data = cpuinfo.get_cpu_info()
+    try:
+        freq_obj = psutil.cpu_freq()
+        freq = dict(freq_obj._asdict()) if freq_obj else {}
+    except Exception:
+        freq = {}
     return {'info': cpu_info_data,
             'count': psutil.cpu_count(),
             'usage': psutil.cpu_percent(),
             'percent': psutil.cpu_percent(percpu=True),
             'stats': dict(psutil.cpu_stats()._asdict()),
-            'freq': dict(psutil.cpu_freq()._asdict()),
+            'freq': freq,
             'times': dict(psutil.cpu_times()._asdict()),
             'times_percent': dict(psutil.cpu_times_percent()._asdict())}
 
@@ -41,7 +46,7 @@ def gpu_info():
             query_result = gpustat.new_query()
             gpu_info_data = [dict(gpu) for gpu in query_result]
             gpu_info_expires = time.time() + CACHE_TIME
-    except:
+    except Exception:
         gpu_info_data = []
     return gpu_info_data
 
@@ -52,23 +57,51 @@ def disk_info():
         disk_info_data = None
     if disk_info_data is None:
         disks = []
-        for part in psutil.disk_partitions():
-            if part.mountpoint != "/host_root":
-                continue
-            usage = psutil.disk_usage(part.mountpoint)
-            part = dict(part._asdict())
-            part['usage'] = dict(usage._asdict())
-            disks.append(part)
+        # In Docker, the host filesystem is bind-mounted at /host_root.
+        # Use it directly so disk usage reflects the real machine.
+        if os.path.ismount(HOST_ROOT):
+            try:
+                usage = psutil.disk_usage(HOST_ROOT)
+                disks.append({
+                    'device': 'host:/',
+                    'mountpoint': '/',
+                    'fstype': 'host',
+                    'opts': 'ro',
+                    'usage': dict(usage._asdict()),
+                })
+            except OSError:
+                pass
+        else:
+            # Bare-metal: scan real partitions, skipping loop devices and /boot.
+            for part in psutil.disk_partitions():
+                if part.device.startswith('/dev/loop'):
+                    continue
+                if part.mountpoint.startswith('/boot'):
+                    continue
+                try:
+                    usage = psutil.disk_usage(part.mountpoint)
+                except (PermissionError, OSError):
+                    continue
+                p = dict(part._asdict())
+                p['usage'] = dict(usage._asdict())
+                disks.append(p)
         disk_info_data = disks
         disk_info_expires = time.time() + CACHE_TIME
     return disk_info_data
+
+
+def host_name():
+    # Inside a container, os.uname()[1] returns the container hostname.
+    # docker-compose passes the real host name via HOST_HOSTNAME.
+    return os.environ.get('HOST_HOSTNAME') or os.uname()[1]
+
 
 app = bottle.Bottle()
 
 @app.get('/stat')
 def stat():
     bottle.response.set_header('Access-Control-Allow-Origin', '*')
-    return {'host': os.uname()[1],
+    return {'host': host_name(),
             'time': time.time(),
             'cpu': cpu_info(),
             'mem': dict(psutil.virtual_memory()._asdict()),
