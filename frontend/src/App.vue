@@ -32,7 +32,7 @@
               b Memory Usage ({{ $filters.formatSize(server.data.mem.used) }} / {{ $filters.formatSize(server.data.mem.total) }}) 
               UsageBar.usage-bar(:percent='100 * server.data.mem.used / server.data.mem.total')
               .little-break
-              b Swap Usage ({{ $filters.formatSize(server.data.swap.used) }} / {{ $filters.formatSize(server.data.swap.total) }}) 
+              b Swap Usage ({{ $filters.formatSize(server.data.swap.used) }} / {{ $filters.formatSize(server.data.swap.total) }})
               UsageBar.usage-bar(:percent='100 * server.data.swap.used / server.data.swap.total')
               table.ui.compact.table
                 tbody
@@ -153,9 +153,9 @@ export default {
       }
 
       try {
-        // Extract server address from link
-        const regex = /https?:\/\/(?<host>[a-zA-Z0-9\.]+)(?::(?<port>[0-9]+))?(?<path>\/.*)?/;
-        addr = regex.exec(link).groups.host;
+        // Resolve relative links (e.g. "/stat/") against the page origin so
+        // same-origin entries show the proxy host instead of "unknown address".
+        addr = new URL(link, window.location.href).host;
       } catch (_) {
         addr = DEFAULT_ADDR;
       }
