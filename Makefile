@@ -29,10 +29,7 @@ prune:
 	docker container prune
 	docker image prune
 
-# Rebuild the frontend service specifically and restart it without affecting other services.
-# This assumes you have a service named 'frontend' in your docker-compose.yml.
+# Rebuild only the frontend image and recreate just that service.
 rebuild-frontend:
-	cd frontend; \
-	npm run build; \
-	cd ..; \
-	docker build -t servstat-frontend frontend; \
+	docker compose build frontend
+	docker compose up -d --no-deps frontend

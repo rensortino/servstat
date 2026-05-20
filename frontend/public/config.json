@@ -1,11 +1,7 @@
 {
-    "title": "Any Optional Title",
+    "title": "Server Monitor",
     "interval": 5000,
     "servers": [
-      "http://backend.server.ip:port/stat",
-      {
-        "name": "Any Optional Server Name",
-        "link": "http://another.backend.server.ip:port/stat"
-      }
+        { "name": "Local", "link": "/stat/" }
     ]
-  }
+}
