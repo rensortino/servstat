@@ -34,6 +34,9 @@
               .little-break
               b Swap Usage ({{ $filters.formatSize(server.data.swap.used) }} / {{ $filters.formatSize(server.data.swap.total) }})
               UsageBar.usage-bar(:percent='100 * server.data.swap.used / server.data.swap.total')
+              .little-break
+              b Disk Usage ({{ $filters.formatSize(diskUsed(server.data.disk)) }} / {{ $filters.formatSize(diskTotal(server.data.disk)) }})
+              UsageBar.usage-bar(:percent='diskPercent(server.data.disk)')
               table.ui.compact.table
                 tbody
                   tr(v-for='disk in server.data.disk' :class="{ negative: disk.usage.total - disk.usage.used < 20 * 1073741824 }")
@@ -196,7 +199,20 @@ export default {
     toggleDarkMode() {
       this.darkMode = !this.darkMode;
       this.storage.set('dark', this.darkMode);
-    }
+    },
+    diskBars(disks) {
+      return (disks || []).filter(d => !d.mountpoint.startsWith('/boot'));
+    },
+    diskTotal(disks) {
+      return this.diskBars(disks).reduce((s, d) => s + d.usage.total, 0);
+    },
+    diskUsed(disks) {
+      return this.diskBars(disks).reduce((s, d) => s + d.usage.used, 0);
+    },
+    diskPercent(disks) {
+      const total = this.diskTotal(disks);
+      return total > 0 ? 100 * this.diskUsed(disks) / total : 0;
+    },
   },
   computed: {
     orderedServers() {
