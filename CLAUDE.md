@@ -39,6 +39,11 @@ After `npm run build`, copy `dist/*` to the webroot. Update `public/config.json`
 
 ### Docker deployment
 
-`docker-compose.yml` builds two services: `backend` (Bottle + gunicorn, NVIDIA runtime, mounts `/:/host_root:ro` and `/data:/host_data:ro` so disk stats reflect the host) and `frontend` (multi-stage: Vite build → nginx:alpine serving the SPA *and* reverse-proxying `/stat/` to `backend:9989`). Only the frontend publishes a host port (`80`). `make build / up / down / restart / rebuild-frontend` wrap the compose commands.
+Deployment is **split by role** across machines — there is no combined compose file:
 
-To monitor additional LAN machines through the same port 80, add a per-host `location = /stat/<slug>/ { proxy_pass http://<ip>:9989/stat; ... }` block in `frontend/nginx.conf` and a matching `{ "name": ..., "link": "/stat/<slug>/" }` entry in `frontend/public/config.json`. The remote machine must run the servstat backend reachable on `:9989` from the proxy host.
+- **`docker-compose.backend.yml`** — run on **every monitored server**. Builds `backend` (Bottle + gunicorn, NVIDIA GPU reservation, mounts `/:/host_root:ro` and `/data:/host_data:ro` so disk stats reflect the host) and publishes `9989` so the frontend client can reach `/stat` over the LAN.
+- **`docker-compose.frontend.yml`** — run on **one client machine only**. Builds `frontend` (multi-stage: Vite build → nginx:alpine serving the SPA *and* reverse-proxying `/stat/<slug>/` to each remote backend). Publishes host port `8000` → container `80`. No GPU.
+
+`setup.sh <role>` drives each: `./setup.sh backend` installs the NVIDIA host deps (driver + Container Toolkit), starts the backend, and prints its `http://<ip>:9989/stat` URL; `./setup.sh frontend` starts the SPA and prints the public frontend URL. The `Makefile` has role-prefixed targets (`backend-*`, `frontend-*`, plus `rebuild-frontend`).
+
+The frontend reaches backends via **nginx reverse-proxy per host** (not direct CORS). To add a monitored machine: add a `location = /stat/<slug>/ { proxy_pass http://<ip>:9989/stat; ... }` block in `frontend/nginx.conf`, a matching `{ "name": ..., "link": "/stat/<slug>/" }` entry in `frontend/public/config.json`, then `make rebuild-frontend`. Backends only need to be reachable from the frontend host (not from browsers directly).

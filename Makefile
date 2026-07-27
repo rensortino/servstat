@@ -1,35 +1,64 @@
-# Use .PHONY to declare targets that are not actual files.
-# This prevents conflicts with files of the same name and improves performance.
-.PHONY: build up down restart logs ps prune rebuild-frontend 
+# ServStat is deployed by role across machines:
+#   * backend  — on every monitored server   (docker-compose.backend.yml)
+#   * frontend — on the one client machine    (docker-compose.frontend.yml)
+#
+# Use the role-specific targets below on the matching machine.
+.PHONY: \
+	backend-build backend-up backend-down backend-restart backend-logs backend-ps \
+	frontend-build frontend-up frontend-down frontend-restart frontend-logs frontend-ps \
+	reload-frontend rebuild-frontend prune
 
-# Build the Docker images as defined in docker-compose.yml
-build:
-	docker compose build
+BACKEND  := docker compose -f docker-compose.backend.yml
+FRONTEND := docker compose -f docker-compose.frontend.yml
 
-# Create and start the containers in detached mode
-up:
-	docker compose up -d
+# --- Backend (run on each monitored server) ---------------------------------
+backend-build:
+	$(BACKEND) build
 
-# Stop and remove the containers, networks, and volumes
-down:
-	docker compose down
+backend-up:
+	$(BACKEND) up -d
 
-# A convenient shortcut to restart the services
-restart: down up
+backend-down:
+	$(BACKEND) down
 
-# Follow the logs of the running services
-logs:
-	docker compose logs -f
+backend-restart: backend-down backend-up
 
-# List the running containers
-ps:
-	docker compose ps
+backend-logs:
+	$(BACKEND) logs -f
 
+backend-ps:
+	$(BACKEND) ps
+
+# --- Frontend (run on the one client machine) -------------------------------
+frontend-build:
+	$(FRONTEND) build
+
+frontend-up:
+	$(FRONTEND) up -d
+
+frontend-down:
+	$(FRONTEND) down
+
+frontend-restart: frontend-down frontend-up
+
+frontend-logs:
+	$(FRONTEND) logs -f
+
+frontend-ps:
+	$(FRONTEND) ps
+
+# Apply server-list changes: nginx.conf + config.json are bind-mounted, so a
+# config test + reload picks them up with no rebuild and no dropped connections.
+reload-frontend:
+	$(FRONTEND) exec frontend nginx -t
+	$(FRONTEND) exec frontend nginx -s reload
+
+# Rebuild the frontend image and recreate it (after changing the SPA source).
+rebuild-frontend:
+	$(FRONTEND) build
+	$(FRONTEND) up -d
+
+# --- Shared -----------------------------------------------------------------
 prune:
 	docker container prune
 	docker image prune
-
-# Rebuild only the frontend image and recreate just that service.
-rebuild-frontend:
-	docker compose build frontend
-	docker compose up -d --no-deps frontend

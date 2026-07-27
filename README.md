@@ -10,36 +10,56 @@ The frontend provides a user-friendly interface to visualize the collected data 
 
 ## Docker Deployment (Recommended)
 
-First, build the Docker images through the Makefile.
+ServStat is deployed by role across machines:
+
+- **Backend** — runs on **every server you want to monitor**. It queries the local machine for CPU, memory, GPU, and disk usage and serves them at `:9989/stat`.
+- **Frontend** — runs on **one client machine only**. It serves the Vue.js UI and reverse-proxies each monitored backend through a single nginx entry point.
+
+### On each monitored server
+
+`setup.sh backend` installs the NVIDIA host dependencies (driver + Container Toolkit), starts the backend, and prints the `http://<ip>:9989/stat` URL to register on the client:
 
 ```shell
-make build
+./setup.sh backend
 ```
 
-This builds the following services:
-- the backend, which is a simple Bottle application that queries the local machine for CPU, memory, and GPU usage,
-- the frontend, a Vue.js application that queries a list of backends specified in the config.json file for the collected data and displays it in a user-friendly interface,
-- an Nginx reverse proxy server that is used as a unique entry point for the frontend and backend services.
-
-Then, start the services using Docker Compose:
+Or drive it manually with the Makefile:
 
 ```shell
-make up
+make backend-build
+make backend-up          # backend-down / backend-restart / backend-logs
 ```
 
-To stop the services, use:
+### On the client machine
+
+Point the frontend at your servers by adding, **per monitored server**, a proxy block in `frontend/nginx.conf`:
+
+```nginx
+location = /stat/gpu01/ { proxy_pass http://192.168.1.11:9989/stat; ... }
+```
+
+and a matching entry in `frontend/public/config.json`:
+
+```json
+{ "name": "GPU 01", "link": "/stat/gpu01/" }
+```
+
+Then start the frontend. `setup.sh frontend` builds/starts it and prints the public URL:
 
 ```shell
-make down
+./setup.sh frontend
 ```
 
-To restart the services, use:
+Or manually:
 
 ```shell
-make restart
+make frontend-build
+make frontend-up         # frontend-down / frontend-restart / frontend-logs
 ```
 
-> :warning: If you modify the frontend code, you will need to rebuild the static files using `make rebuild-frontend` before rebuilding the docker image.
+The frontend is published on host port `8000`.
+
+> :warning: After editing `nginx.conf` or `config.json`, rebuild the frontend image with `make rebuild-frontend`.
 
 ## Manual Deployment
 

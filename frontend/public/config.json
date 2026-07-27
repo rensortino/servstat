@@ -2,6 +2,7 @@
     "title": "Server Monitor",
     "interval": 5000,
     "servers": [
-        { "name": "Local", "link": "/stat/" }
+        { "name": "GPU 01", "link": "/stat/gpu01/" },
+        { "name": "Scaleway 01", "link": "/stat/scw01/" }
     ]
 }
