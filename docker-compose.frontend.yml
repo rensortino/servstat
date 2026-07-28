@@ -1,0 +1,18 @@
+# Frontend deployment — run this on ONE client machine only.
+#
+# Serves the Vue SPA and reverse-proxies /stat/<slug>/ to each monitored
+# server's backend (configured in frontend/nginx.conf). No GPU required.
+services:
+  frontend:
+    image: servstat-frontend:latest
+    hostname: frontend
+    build: ./frontend
+    ports:
+      # Host port 8000 -> nginx (listens on 80 inside the container).
+      - "8000:80"
+    volumes:
+      # Server list lives on the host — edit these and `make reload-frontend`
+      # to add/change monitored servers without rebuilding the image.
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/public/config.json:/usr/share/nginx/html/config.json:ro
+    restart: unless-stopped

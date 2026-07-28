@@ -1,0 +1,36 @@
+# Backend deployment — run this on EVERY monitored server.
+#
+# Exposes GET :9989/stat with a JSON snapshot of the host (CPU/mem/GPU/disk).
+# Publishes port 9989 so the single frontend client can reach it over the LAN.
+# Reserves the host's NVIDIA GPU(s); the host must have the NVIDIA driver and
+# the NVIDIA Container Toolkit installed (see: ./setup.sh backend).
+services:
+  backend:
+    image: servstat-backend:latest
+    hostname: backend
+    build: ./backend
+    ports:
+      # Published so VPN peers (incl. the frontend host) reach it at <host-ip>:9989.
+      # BACKEND_BIND pins which host interface the port binds to:
+      #   * VPN machine  -> set BACKEND_BIND to this host's VPN IP so metrics are
+      #                     NOT exposed on other interfaces (e.g. BACKEND_BIND=10.0.0.11).
+      #   * Scaleway     -> leave 0.0.0.0 and restrict inbound :9989 to the
+      #                     frontend host's egress IP with a Security Group.
+      - "${BACKEND_BIND:-0.0.0.0}:9989:9989"
+    volumes:
+      # Mount host root read-only so disk usage reflects the actual machine.
+      - /:/host_root:ro
+      # Mount /data if present on the host. On hosts without /data, docker
+      # creates an empty dir here — the backend detects same-fs-as-root and skips it.
+      - /data:/host_data:ro
+    environment:
+      # Surface the real host name in /stat (otherwise os.uname() returns "backend").
+      HOST_HOSTNAME: ${HOSTNAME:-localhost}
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
