@@ -1,0 +1,15 @@
+[project]
+name = "servstat-backend"
+version = "0.1.0"
+description = "ServStat backend — per-server host stats endpoint (Bottle + gunicorn)"
+requires-python = ">=3.10"
+dependencies = [
+    "py-cpuinfo==9.0.0",
+    "gpustat==1.1.1",
+    "psutil==7.2.2",
+    "bottle==0.13.4",
+    "gunicorn==26.0.0",
+]
+
+[tool.uv]
+package = false

@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.4.1-base-ubuntu22.04
+FROM nvidia/cuda:13.3.0-cudnn-runtime-ubuntu22.04
 
 # Set a non-interactive frontend for package installers to avoid prompts
 ARG DEBIAN_FRONTEND=noninteractive
@@ -32,12 +32,10 @@ SHELL ["/bin/bash", "-c"]
 # Copy your application code into the container
 COPY . /app
 
-# Step 4: Create the virtual environment and install dependencies using uv.
-# This combines multiple commands into one RUN layer for efficiency.
-# Running `uv pip install` from within the venv ensures packages are installed correctly.
-RUN uv venv --python 3.12 && \
-    source .venv/bin/activate && \
-    uv pip install -r requirements.txt
+# Step 4: Create the virtual environment and install the pinned dependencies
+# using uv. `uv sync --frozen` installs exactly what's in uv.lock (built from
+# pyproject.toml), so the container matches the locked, reproducible env.
+RUN uv sync --frozen --python 3.12
 
 # Step 5: Run the backend Python script when the container launches.
 # This command remains the same. `uv run` will automatically use the .venv.
